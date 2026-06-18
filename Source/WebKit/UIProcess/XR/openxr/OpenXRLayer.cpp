@@ -330,8 +330,12 @@ std::optional<PlatformXR::FrameData::ExternalTexture> OpenXRLayer::exportOpenXRT
 #if OS(ANDROID)
     return exportOpenXRTextureAndroid(*display, openxrTexture);
 #else
-    if (display->extensions().MESA_image_dma_buf_export)
-        return exportOpenXRTextureDMABuf(*display, *glContext, openxrTexture);
+    // Try to use the zero copy MESA_image_dma_buf_export approach by re-exoporting the image.
+    // However if that fails fall back to creating creating image and blitting via gbm.
+    if (display->extensions().MESA_image_dma_buf_export) {
+        if (auto exported = exportOpenXRTextureDMABuf(*display, *glContext, openxrTexture))
+            return exported;
+    }
 #endif
 
 #if USE(GBM)

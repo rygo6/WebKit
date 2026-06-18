@@ -731,11 +731,13 @@ RefPtr<WebCore::GLDisplay> OpenXRCoordinator::createGLDisplay(bool isForTesting)
     }
 
 #if USE(GBM)
-    if (!glDisplay && WebCore::GLContext::isExtensionSupported(extensions, "EGL_KHR_platform_gbm")) {
+    // We always create the bgm device because we may need to use it as a fallback to blit certain layers if 
+    // the driver does not support MESA_image_dma_buf_export with the format requested.
+    if (WebCore::GLContext::isExtensionSupported(extensions, "EGL_KHR_platform_gbm")) {
         const auto& mainDevice = drmMainDevice();
         if (!mainDevice.isNull()) {
             m_gbmDevice = WebCore::GBMDevice::create(!mainDevice.renderNode.isNull() ? mainDevice.renderNode : mainDevice.primaryNode);
-            if (m_gbmDevice)
+            if (m_gbmDevice && !glDisplay)
                 glDisplay = tryCreateDisplay(EGL_PLATFORM_GBM_KHR, m_gbmDevice->device());
         }
     }
